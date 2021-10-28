@@ -8,7 +8,8 @@ module Klua
                    :local | :if | :then | :else | :end | 
                    :and | :or | :not | 
                    :+ | :- | :* | :/ | :< | :> | :== | :noteq | 
-                   :assign | :comma | :semicolon | :lbrace | :rbrace | 
+                   :assign | :comma | :semicolon | :lbrace | :rbrace |
+                   :eof |
                    :dummy
 
   class Token
@@ -39,8 +40,30 @@ module Klua
   end
 
   class Scanner
+    @source: Array[Integer]
+    @start: Integer
+    @current: Integer
+    @tokens: Array[Token]
+
     def initialize: -> untyped
-    def scan: (String source) -> [Token]
+    def scan: (String source) -> Array[Token]
+
+    private
+    def scan_token: -> untyped
+    def add_token: (token_type type_) -> untyped
+    def as_string: -> untyped
+    def as_number: -> untyped
+    def as_identifier: -> untyped
+    def get_reserved_sym: (String lit) -> token_type? 
+    
+    def succ: -> Integer
+    def match: (Integer expected) -> bool
+    def peek: -> Integer
+    def peek_next: -> Integer
+    def digit?: (Integer char) -> bool
+    def alpha?: (Integer char) -> bool
+    def alphanumeric?: (Integer char) -> bool
+    def at_end?: -> bool
   end
 
   class Parser

@@ -41,10 +41,136 @@ module Klua
       @current = 0
       @tokens = []
 
+      while !at_end?
+        @start = @current
+        scan_token
+      end
+
+      @tokens << Token.new(:eof, "")
+
       @tokens
     end
 
     private
+    def scan_token
+      char = succ
+      case char
+      when '+'.ord
+        add_token(:+)
+      when '-'.ord
+        add_token(:-)
+      when '*'.ord
+        add_token(:*)
+      when '/'.ord
+        add_token(:/)
+      when '<'.ord
+        add_token(:<)
+      when '>'.ord
+        add_token(:>)
+      when '='.ord
+        if match('='.ord)
+          add_token(:==)
+        else
+          add_token(:assign)
+        end
+      when '~'.ord
+        if match('='.ord)
+          add_token(:noteq)
+        else
+          raise "Unexpected character"
+        end
+      when ','.ord
+        add_token(:comma)
+      when ';'.ord
+        add_token(:semicolon)
+      when '('.ord
+        add_token(:lbrace)
+      when ')'.ord
+        add_token(:rbrace)
+      when ' '.ord, "\r".ord, "\n".ord, "\t".ord
+        # Skip!
+        return
+      when '"'.ord
+        as_string
+      else
+        if digit?(char)
+          as_number
+        elsif alpha?(char)
+          as_identifier
+        else
+          raise "Unexpected character"
+        end
+      end
+    end
+
+    def add_token(type)
+      value = @source[@start...@current]&.map{|v| v.chr }.join
+      raise "Invalid token range" unless value
+      @tokens << Token.new(type, value)
+    end
+
+    def as_string
+      while peek() != '"'.ord && !at_end?
+        succ()
+      end
+
+      if at_end?
+        raise "Unterminated string."
+      end
+      # consume "
+      succ()
+
+      start = @start + 1
+      end_ = @current - 1
+      lit = @source[start...end_]&.map{|v| v.chr }.join
+      raise "Invalid literal range" unless lit
+      @tokens << Token.new(:literal_str, lit)
+    end
+
+    def as_number
+      succ() while digit?(peek)
+
+      lit = @source[@start...@current]&.map{|v| v.chr }.join
+      raise "Invalid number range" unless lit
+
+      @tokens << Token.new(:number, lit)
+    end
+
+    def as_identifier
+      succ() while alphanumeric?(peek)
+      lit = @source[@start...@current]&.map{|v| v.chr }.join
+      raise "Invalid number range" unless lit
+
+      if sym = get_reserved_sym(lit)
+        @tokens << Token.new(sym, lit)
+      else
+        @tokens << Token.new(:identifier, lit)
+      end
+    end
+
+    def get_reserved_sym(lit)
+      case lit
+      when "local"
+        :local
+      when "if"
+        :if
+      when "then"
+        :then
+      when "else"
+        :else
+      when "end"
+        :end
+      when "and"
+        :and
+      when "or"
+        :or
+      when "not"
+        :not
+      else
+        nil
+      end
+    end
+
     def succ
       char = @source[@current]
       # unless char
