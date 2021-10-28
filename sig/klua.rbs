@@ -4,13 +4,13 @@
 module Klua
   VERSION: String
 
-  type token_type = :identifier | :number | :literal_str | 
-                   :local | :if | :then | :else | :end | 
-                   :and | :or | :not | 
-                   :+ | :- | :* | :/ | :< | :> | :== | :noteq | 
-                   :assign | :comma | :semicolon | :lbrace | :rbrace |
-                   :eof |
-                   :dummy
+  type token_type = :identifier | :number | :literal_str |
+                    :local | :if | :then | :else | :end |
+                    :and | :or | :not |
+                    :+ | :- | :* | :/ | :< | :> | :== | :noteq |
+                    :assign | :comma | :semicolon | :lbrace | :rbrace |
+                    :eof |
+                    :dummy
 
   class Token
     def initialize: (token_type type_, String value) -> untyped
@@ -19,9 +19,9 @@ module Klua
   end
 
   type node_type = :block | :stat | :varstat | :assignstat | :funcallstat | :ifstat |
-                  :var | :exp | :prefixexp | :unary | :binary | 
-                  :functioncall | :args | :binop | :unop | 
-                  :dummy | :root
+                   :var | :exp | :prefixexp | :unary | :binary |
+                   :functioncall | :args | :binop | :unop |
+                   :dummy | :root
 
   class Node
     def initialize: (node_type type_, Array[Node] nodes, Token? term) -> untyped
@@ -54,8 +54,8 @@ module Klua
     def as_string: -> untyped
     def as_number: -> untyped
     def as_identifier: -> untyped
-    def get_reserved_sym: (String lit) -> token_type? 
-    
+    def get_reserved_sym: (String lit) -> token_type?
+
     def succ: -> Integer
     def match: (Integer expected) -> bool
     def peek: -> Integer
