@@ -5,6 +5,7 @@ module Klua
   VERSION: String
 
   type token_type = :identifier | :number | :literal_str |
+                    :true | :false | :nil |
                     :local | :if | :then | :else | :end |
                     :and | :or | :not |
                     :+ | :- | :* | :/ | :< | :> | :== | :noteq |
@@ -19,9 +20,10 @@ module Klua
   end
 
   type node_type = :block | :stat | :varstat | :assignstat | :funcallstat | :ifstat |
-                   :var | :exp | :prefixexp | :unary | :binary |
-                   :functioncall | :args | :binop | :unop |
-                   :dummy | :root
+                   :exp | :binary | :unary | :functioncall | :primary | :var |
+                   :args | :binop | :unop | :term |
+                   :dummy |
+                   :root
 
   class Node
     def initialize: (node_type type_, Array[Node] nodes, Token? term) -> untyped
@@ -67,7 +69,41 @@ module Klua
   end
 
   class Parser
+    @tokens: [Token]
+    @current: Integer
+    @node: Node
+
     def initialize: -> untyped
     def parse: ([Token] tokens) -> Root
+
+    private
+    def block: -> Node
+    def stats: -> Array[Node]
+    def stat: -> Node
+    def varstat: -> Node
+    def ifstat: -> Node
+    def assignstat: -> Node
+    def funcallstat: -> Node
+    def var: -> Node
+    def exp: -> Node
+    def binary: -> Node
+    def unary: -> Node
+    def functioncall: -> Node
+    def primary: -> Node
+    def args: -> Node
+    def binop?: -> Node?
+    def unop?: -> Node?
+
+    def term!: (token_type token) -> Node
+    def term: (Token token) -> Node
+
+    def match: (*token_type types) -> bool
+    def check: (token_type type_) -> bool
+    def succ: -> Token
+    def consume: (token_type type_, String message) -> Token
+    def at_end?: -> bool
+    def peek: -> Token
+    def peek_next: -> Token
+    def previous: -> Token
   end
 end

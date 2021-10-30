@@ -227,12 +227,196 @@ module Klua
 
   class Parser
     def initialize
+      @tokens = [Token.new(:dummy, "")]
+      @current = 0
     end
 
     def parse(tokens)
-      Root.new(
-        Node.new(:dummy, [], nil)
-      )
+      @current = 0
+
+      @node = block()
+      Root.new(@node)
+    end
+
+    private
+    def block
+      Node.new(:block, stats, nil)
+    end
+
+    def stats
+      statements = []
+      while !at_end?
+        statements.push stat
+      end
+      statements
+    end
+
+    def stat
+      if match(:local)
+        varstat()
+      elsif match(:if)
+        ifstat()
+      elsif peek_next.type == :assign
+        assignstat()
+      else
+        funcallstat()
+      end
+    end
+
+    def varstat
+      nodes = [var()]
+      if match(:assign)
+        nodes << exp()
+      end
+      consume(:semicolon, "Expect ; at the end of stat")
+
+      Node.new(:varstat, nodes, nil)
+    end
+
+    def ifstat
+      Node.new(:dummy, [], nil)
+    end
+
+    def assignstat
+      Node.new(:dummy, [], nil)
+    end
+
+    def funcallstat
+      Node.new(:dummy, [], nil)
+    end
+
+    def var
+      token = consume(:identifier, "Expect identifier for variable name")
+      Node.new(:term, [], token)
+    end
+
+    def exp
+      Node.new(:exp, [binary()], nil)
+    end
+
+    def binary
+      left = unary()
+      if op = binop?()
+        right = unary()
+        Node.new(:binary, [left, op ,right], nil)
+      else
+        Node.new(:binary, [left], nil)
+      end
+    end
+
+    def unary
+      if op = unop?()
+        right = unary()
+        Node.new(:unary, [op, right], nil)
+      else
+        Node.new(:unary, [functioncall()], nil)
+      end
+    end
+
+    def functioncall
+      nodes = [primary()]
+      nodes.push(args())
+      Node.new(:functioncall, nodes, nil)
+    end
+
+    def primary
+      if match(:nil)
+        Node.new(:primary, [term!(:nil)], nil)
+      elsif match(:false)
+        Node.new(:primary, [term!(:false)], nil)
+      elsif match(:true)
+        Node.new(:primary, [term!(:true)], nil)
+      elsif match(:number)
+        Node.new(:primary, [term!(:number)], nil)
+      elsif match(:literal_str)
+        Node.new(:primary, [term!(:literal_str)], nil)
+      elsif match(:lbrace)
+        r = Node.new(:primary, [exp()], nil)
+        consume(:identifier, "Expect ) afrer (")
+        r
+      else
+        Node.new(:primary, [var()], nil)
+      end
+    end
+
+    def args
+      Node.new(:dummy, [], nil)
+    end
+
+    def binop?
+      if check(:+) || check(:-) || check(:*) || check(:/) || \
+         check(:<) || check(:>) || check(:==) || check(:noteq)
+        return term(succ())
+      else
+        nil
+      end
+    end
+
+    def unop?
+      if check(:-) || check(:not)
+        return term(succ())
+      else
+        nil
+      end
+    end
+
+    def term!(token_type)
+      token = Token.new(token, token.to_s)
+      term(token)
+    end
+
+    def term(token)
+      Node.new(:term, [], token)
+    end
+
+    def match(*types)
+      types.each do |type|
+        if check(type)
+          succ()
+          return true
+        end
+      end
+
+      false
+    end
+
+    def check(type)
+      if at_end?
+        false
+      else
+        peek.type == type
+      end
+    end
+
+    def succ
+      if !at_end?
+        @current += 1
+      end
+      previous
+    end
+
+    def consume(type, message)
+      if check(type)
+        succ()
+      else
+        raise "#{message} <token: #{peek}>"
+      end
+    end
+
+    def at_end?
+      peek.type == :eof
+    end
+
+    def peek
+      @tokens[@current] || raise("EOF or out of range")
+    end
+
+    def peek_next
+      @tokens[@current + 1] || raise("EOF or out of range")
+    end
+
+    def previous
+      @tokens[@current - 1] || raise("EOF or out of range")
     end
   end
 end
