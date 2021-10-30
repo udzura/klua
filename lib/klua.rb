@@ -238,8 +238,8 @@ module Klua
   end
 
   class Parser
-    def self.parse_through(string)
-      tokens = Klua::Scanner.new.scan string
+    def self.parse_through(source)
+      tokens = Klua::Scanner.new.scan source
       ast = self.new.parse(tokens)
       [tokens, ast]
     end
@@ -255,8 +255,8 @@ module Klua
       @block_level = 0
       @tokens = tokens
 
-      @node = block()
-      Root.new(@node)
+      node = block()
+      Root.new(node)
     end
 
     private
@@ -267,6 +267,7 @@ module Klua
       if toplevel? && !at_end?
         raise "Unexpedted token: #{peek.inspect}"
       end
+      ret
     end
 
     def stats

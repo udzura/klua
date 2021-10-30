@@ -26,15 +26,15 @@ module Klua
                    :root
 
   class Node
-    def initialize: (node_type type_, Array[Node] nodes, Token? term) -> untyped
+    def initialize: (node_type type_, Array[Node?] nodes, Token? term) -> untyped
     attr_reader type: node_type
-    attr_reader nodes: Array[Node]
+    attr_reader nodes: Array[Node?]
     attr_reader term: Token?
   end
 
   class Root < Node
     @type: node_type
-    @nodes: Array[Node]
+    @nodes: Array[Node?]
     @term: Token?
 
     def initialize: (Node root) -> untyped
@@ -69,17 +69,18 @@ module Klua
   end
 
   class Parser
-    @tokens: [Token]
+    @tokens: Array[Token]
     @current: Integer
-    @node: Node
+    @block_level: Integer
 
+    def self.parse_through: (String source) -> [Array[Token], Root]
     def initialize: -> untyped
-    def parse: ([Token] tokens) -> Root
+    def parse: (Array[Token] tokens) -> Root
 
     private
     def block: -> Node
-    def stats: -> Array[Node]
-    def stat: -> Node
+    def stats: -> Array[Node?]
+    def stat: -> Node?
     def varstat: -> Node
     def ifstat: -> Node
     def assignstat: -> Node
@@ -105,5 +106,6 @@ module Klua
     def peek: -> Token
     def peek_next: -> Token
     def previous: -> Token
+    def toplevel?: -> bool
   end
 end
