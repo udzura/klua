@@ -9,6 +9,10 @@ module Klua
       @value = value
     end
     attr_reader :type, :value
+
+    def inspect
+      "<Token type: #{@type} value: #{@value.inspect}>"
+    end
   end
 
   class Node
@@ -18,6 +22,10 @@ module Klua
       @term = term
     end
     attr_reader :type, :nodes, :term
+
+    def inspect
+      "<Node type: #{@type} nodes: #{@nodes.inspect} term: #{@term.inspect}>"
+    end
   end
 
   class Root < Node
@@ -29,6 +37,10 @@ module Klua
     end
 
     attr_reader :root
+
+    def inspect
+      "<Node type: #{@type} root: #{@root.inspect}>"
+    end
   end
 
   class Scanner
@@ -226,13 +238,22 @@ module Klua
   end
 
   class Parser
+    def self.parse_through(string)
+      tokens = Klua::Scanner.new.scan string
+      ast = self.new.parse(tokens)
+      [tokens, ast]
+    end
+
     def initialize
       @tokens = [Token.new(:dummy, "")]
       @current = 0
+      @block_level = 0
     end
 
     def parse(tokens)
       @current = 0
+      @block_level = 0
+      @tokens = tokens
 
       @node = block()
       Root.new(@node)
@@ -240,13 +261,22 @@ module Klua
 
     private
     def block
-      Node.new(:block, stats, nil)
+      @block_level += 1
+      ret = Node.new(:block, stats(), nil)
+      @block_level -= 1
+      if toplevel? && !at_end?
+        raise "Unexpedted token: #{peek.inspect}"
+      end
     end
 
     def stats
       statements = []
       while !at_end?
-        statements.push stat
+        if got = stat()
+          statements.push got
+        else
+          break
+        end
       end
       statements
     end
@@ -258,8 +288,10 @@ module Klua
         ifstat()
       elsif peek_next.type == :assign
         assignstat()
-      else
+      elsif check(:lbrace) || check(:identifier)
         funcallstat()
+      else
+        nil
       end
     end
 
@@ -274,15 +306,31 @@ module Klua
     end
 
     def ifstat
-      Node.new(:dummy, [], nil)
+      nodes = []
+      nodes << exp()
+      consume(:then, "Expect then after if condition")
+      nodes << block()
+      if match(:else)
+        nodes << block()
+      end
+      consume(:end, "Expect end after if stat")
+      consume(:semicolon, "Expect ; at the end of stat")
+
+      Node.new(:ifstat, nodes, nil)
     end
 
     def assignstat
-      Node.new(:dummy, [], nil)
+      nodes = [var()]
+      consume(:assign, "Expect = for assignment")
+      nodes << exp()
+      consume(:semicolon, "Expect ; at the end of stat")
+      Node.new(:assignstat, [], nil)
     end
 
     def funcallstat
-      Node.new(:dummy, [], nil)
+      fc = functioncall()
+      consume(:semicolon, "Expect ; at the end of stat")
+      Node.new(:funcallstat, [fc], nil)
     end
 
     def var
@@ -308,8 +356,10 @@ module Klua
       if op = unop?()
         right = unary()
         Node.new(:unary, [op, right], nil)
-      else
+      elsif peek_next.type == :lbrace
         Node.new(:unary, [functioncall()], nil)
+      else
+        Node.new(:unary, [primary()], nil)
       end
     end
 
@@ -340,7 +390,13 @@ module Klua
     end
 
     def args
-      Node.new(:dummy, [], nil)
+      nodes = []
+      consume(:lbrace, "Expect ( on starting args")
+      if ! match(:rbrace)
+        nodes << exp()
+        consume(:rbrace, "Expect ) afrer (")
+      end
+      Node.new(:args, nodes, nil)
     end
 
     def binop?
@@ -399,7 +455,7 @@ module Klua
       if check(type)
         succ()
       else
-        raise "#{message} <token: #{peek}>"
+        raise "#{message} - expected #{type} but got <token: #{peek.inspect}>"
       end
     end
 
@@ -412,11 +468,19 @@ module Klua
     end
 
     def peek_next
-      @tokens[@current + 1] || raise("EOF or out of range")
+      if at_end?
+        peek
+      else
+        @tokens[@current + 1] || raise("EOF or out of range")
+      end
     end
 
     def previous
       @tokens[@current - 1] || raise("EOF or out of range")
+    end
+
+    def toplevel?
+      @block_level <= 0
     end
   end
 end
