@@ -507,6 +507,7 @@ module Klua
       @indent += 2
       visit(root.root)
       @indent = 0
+      nil
     end
 
     def visit(node)
@@ -524,6 +525,7 @@ module Klua
         puts "[Token: #{node.term&.value} (#{node.term&.type.inspect}) ]"
       end
       @indent -= 2
+      nil
     end
   end
 end
