@@ -325,7 +325,7 @@ module Klua
       consume(:assign, "Expect = for assignment")
       nodes << exp()
       consume(:semicolon, "Expect ; at the end of stat")
-      Node.new(:assignstat, [], nil)
+      Node.new(:assignstat, nodes, nil)
     end
 
     def funcallstat
@@ -377,10 +377,10 @@ module Klua
         Node.new(:primary, [term!(:false)], nil)
       elsif match(:true)
         Node.new(:primary, [term!(:true)], nil)
-      elsif match(:number)
-        Node.new(:primary, [term!(:number)], nil)
-      elsif match(:literal_str)
-        Node.new(:primary, [term!(:literal_str)], nil)
+      elsif check(:number)
+        Node.new(:primary, [term(succ())], nil)
+      elsif check(:literal_str)
+        Node.new(:primary, [term(succ())], nil)
       elsif match(:lbrace)
         r = Node.new(:primary, [exp()], nil)
         consume(:identifier, "Expect ) afrer (")
