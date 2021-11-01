@@ -26,6 +26,10 @@ module Klua
     def inspect
       "<Node type: #{@type} nodes: #{@nodes.inspect} term: #{@term.inspect}>"
     end
+
+    def accept(visirtor)
+      visirtor.visit(self)
+    end
   end
 
   class Root < Node
@@ -40,6 +44,10 @@ module Klua
 
     def inspect
       "<Node type: #{@type} root: #{@root.inspect}>"
+    end
+
+    def accept(visirtor)
+      visirtor.visit_root(self)
     end
   end
 
@@ -418,7 +426,7 @@ module Klua
     end
 
     def term!(token_type)
-      token = Token.new(token, token.to_s)
+      token = Token.new(token_type, token_type.to_s)
       term(token)
     end
 
@@ -482,6 +490,40 @@ module Klua
 
     def toplevel?
       @block_level <= 0
+    end
+  end
+
+  class ASTVisitor
+    def initialize
+      @indent = 0
+    end
+
+    def print_all(node)
+      node.accept(self)
+    end
+
+    def visit_root(root)
+      puts "* Root: @type=#{root.type}"
+      @indent += 2
+      visit(root.root)
+      @indent = 0
+    end
+
+    def visit(node)
+      print " " * @indent
+      puts "┗ Node: @type=#{node.type}"
+      @indent += 2
+      if !node.nodes.empty?
+        node.nodes.each do |node_|
+          if node_
+            visit(node_)
+          end
+        end
+      else
+        print " " * @indent
+        puts "[Token: #{node.term&.value} (#{node.term&.type.inspect}) ]"
+      end
+      @indent -= 2
     end
   end
 end

@@ -27,6 +27,7 @@ module Klua
 
   class Node
     def initialize: (node_type type_, Array[Node?] nodes, Token? term) -> untyped
+    def accept: (_Visitor visitor) -> untyped
     attr_reader type: node_type
     attr_reader nodes: Array[Node?]
     attr_reader term: Token?
@@ -107,5 +108,17 @@ module Klua
     def peek_next: -> Token
     def previous: -> Token
     def toplevel?: -> bool
+  end
+
+  interface _Visitor
+    def visit: (Node node) -> untyped
+    def visit_root: (Root root) -> untyped
+  end
+
+  class ASTVisitor
+    include _Visitor
+    @indent: Integer
+    def initialize: -> untyped
+    def print_all: (Node node) -> untyped
   end
 end
